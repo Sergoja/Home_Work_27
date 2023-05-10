@@ -18,12 +18,16 @@ from django.contrib import admin
 from django.urls import path
 
 import ads.views
-from vacancies import views
+import vacancies.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('hello/', views.hello),
-    path('vacancy/', views.VacancyView.as_view()),
-    path('vacancy/<int:pk>', views.VacancyDetailView.as_view()),
-    path('', ads.views.home)
+    path('hello/', vacancies.views.hello),
+    path('vacancy/', vacancies.views.VacancyView.as_view()),
+    path('vacancy/<int:pk>', vacancies.views.VacancyDetailView.as_view()),
+    path('', ads.views.home),
+    path('cat/', ads.views.CategoryView.as_view()),
+    path('ad/', ads.views.AdView.as_view()),
+    path('cat/<int:pk>', ads.views.CategoryDetailView.as_view()),
+    path('ad/<int:pk>', ads.views.AdsDetailView.as_view())
 ]
