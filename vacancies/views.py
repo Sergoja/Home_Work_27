@@ -1,5 +1,8 @@
 import json
 
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
@@ -7,6 +10,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 
+from Home_Work_27 import settings
 from vacancies.models import Vacancy, Skill
 
 
@@ -26,12 +30,24 @@ class VacancyListView(ListView):
             if not self.object_list:
                 return JsonResponse({"error": "Not found"}, status=404)
 
-        response = []
-        for vacancy in self.object_list:
-            response.append({
+        self.object_list = self.object_list.order_by("text")
+
+        paginator = Paginator(self.object_list, settings.TOTAL_ON_PAGE)
+        page_number = request.GET.get("page")
+        page_object = paginator.get_page(page_number)
+
+        vacancies = []
+        for vacancy in page_object:
+            vacancies.append({
                 "id": vacancy.id,
                 "text": vacancy.text
             })
+
+        response = {
+            "items": vacancies,
+            "num_pages": paginator.num_pages,
+            "total": paginator.count
+        }
 
         return JsonResponse(response, safe=False)
 
@@ -121,3 +137,28 @@ class VacancyDeleteView(DeleteView):
         super().delete(request, *args, **kwargs)
 
         return JsonResponse({"status": "ok"}, status=200)
+
+
+class UserVacancyDetailView(View):
+    def get(self, request):
+        user_qs = User.objects.annotate(vacancies=Count('vacancy'))
+
+        paginator = Paginator(user_qs, settings.TOTAL_ON_PAGE)
+        page_number = request.GET.get("page")
+        page_object = paginator.get_page(page_number)
+
+        users = []
+        for user in page_object:
+            users.append({
+                "id": user.id,
+                "name": user.username,
+                "vacancies": user.vacancies
+            })
+
+        response = {
+            "items": users,
+            "num_pages": paginator.num_pages,
+            "total": paginator.count
+        }
+
+        return JsonResponse(response)
