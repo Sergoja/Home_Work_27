@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -30,7 +30,7 @@ class VacancyListView(ListView):
             if not self.object_list:
                 return JsonResponse({"error": "Not found"}, status=404)
 
-        self.object_list = self.object_list.order_by("text")
+        self.object_list = self.object_list.select_related("user").order_by("text")
 
         paginator = Paginator(self.object_list, settings.TOTAL_ON_PAGE)
         page_number = request.GET.get("page")
@@ -82,6 +82,16 @@ class VacancyCreateView(CreateView):
             text=vacancy_data["text"],
             status=vacancy_data["status"]
         )
+
+        vacancy.user = get_object_or_404(User.objects.get(pk=vacancy_data["user_id"]))
+
+        for skill in vacancy_data["skills"]:
+            skill_obj, crated = Skill.objects.get_or_create(name=skill, defaults={
+                "is_active": True
+            })
+            vacancy.skills.add(skill_obj)
+
+        vacancy.save()
 
         return JsonResponse({
             "id": vacancy.id,
