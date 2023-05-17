@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import DetailView
+from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 
 from ads.models import Ad, Category
 
@@ -15,20 +15,13 @@ def home(request):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AdView(View):
-    def get(self, request):
+class AdListView(ListView):
+    model = Ad
 
-        ads = Ad.objects.all()
+    def get(self, request, *args, **kwargs):
+        super().get(request, *args, **kwargs)
 
-        search_text = request.GET.get("text", None)
-        if search_text:
-            ads = ads.filter(text=search_text)
-            if not ads:
-                return JsonResponse({"error": "Not found"}, status=404)
-
-        response = []
-        for ad in ads:
-            response.append({
+        return JsonResponse([{
                 "id": ad.id,
                 "name": ad.name,
                 "author": ad.author,
@@ -36,11 +29,14 @@ class AdView(View):
                 "price": ad.price,
                 "address": ad.address,
                 "is_published": ad.is_published
-            })
+            } for ad in self.object_list], safe=False)
 
-        return JsonResponse(response, safe=False)
 
-    def post(self, request):
+@method_decorator(csrf_exempt, name="dispatch")
+class AdCreateView(CreateView):
+    model = Ad
+
+    def post(self, request, *args, **kwargs):
         ad_data = json.loads(request.body)
 
         ad = Ad()
@@ -64,41 +60,6 @@ class AdView(View):
         })
 
 
-@method_decorator(csrf_exempt, name="dispatch")
-class CategoryView(View):
-    def get(self, request):
-
-        categories = Category.objects.all()
-
-        search_text = request.GET.get("text", None)
-        if search_text:
-            categories = categories.filter(text=search_text)
-            if not categories:
-                return JsonResponse({"error": "Not found"}, status=404)
-
-        response = []
-        for category in categories:
-            response.append({
-                "id": category.id,
-                "name": category.name,
-            })
-
-        return JsonResponse(response, safe=False)
-
-    def post(self, request):
-        category_data = json.loads(request.body)
-
-        category = Ad()
-        category.name = category_data["name"]
-
-        category.save()
-
-        return JsonResponse({
-            "id": category.id,
-            "name": category.name,
-        })
-
-
 class AdsDetailView(DetailView):
     model = Ad
 
@@ -116,6 +77,60 @@ class AdsDetailView(DetailView):
         })
 
 
+@method_decorator(csrf_exempt, name="dispatch")
+class CategoryListView(ListView):
+    model = Category
+
+    def get(self, request, *args, **kwargs):
+        super().get(request, *args, **kwargs)
+        return JsonResponse([{"id": cat.pk, "name": cat.name} for cat in self.object_list], safe=False)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CategoryCreateView(CreateView):
+    model = Category
+    fields = "__all__"
+
+    def post(self, request, *args, **kwargs):
+        category_data = json.loads(request.body)
+        new_category = Category.objects.create(name=category_data.get("name"))
+
+        return JsonResponse({
+            "id": new_category.id,
+            "name": new_category.name,
+        })
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CategoryUpdateView(UpdateView):
+    model = Category
+    fields = "__all__"
+
+    def patch(self, request, *args, **kwargs):
+        super().post(request, *args, **kwargs)
+        cat_data = json.loads(request.body)
+
+        self.object.name = cat_data["name"]
+        self.object.save()
+
+        return JsonResponse({
+            "id": self.object.id,
+            "name": self.object.name
+        })
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CategoryDeleteView(DeleteView):
+    model = Category
+    success_url = "/"
+
+    def delete(self, request, *args, **kwargs):
+        super().delete(request, *args, **kwargs)
+
+        return JsonResponse({"status": "ok"}, status=200)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
 class CategoryDetailView(DetailView):
     model = Category
 
