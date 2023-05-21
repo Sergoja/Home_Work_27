@@ -26,13 +26,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('hello/', vacancies.views.hello),
     path('vacancy/', include('vacancies.urls')),
+    path('ad/', include('ads.urls.ad')),
+    path('cat/', include('ads.urls.cat')),
+    path('user/', include('users.urls')),
     path('', ads.views.home),
-    path('cat/', ads.views.CategoryView.as_view()),
-    path('ad/', ads.views.AdView.as_view()),
-    path('cat/<int:pk>', ads.views.CategoryDetailView.as_view()),
-    path('ad/<int:pk>', ads.views.AdsDetailView.as_view()),
     path('company/', include('companies.urls')),
 ]
 
 if settings.DEBUG:
-    static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
