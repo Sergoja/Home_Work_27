@@ -17,21 +17,26 @@ Including another URLconf
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import routers
 
-import ads.views
 import vacancies.views
+import vacancies.models
 from Home_Work_27 import settings
+from vacancies.views import SkillsViewSet
+
+router = routers.SimpleRouter()
+router.register('skill', SkillsViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('hello/', vacancies.views.hello),
     path('vacancy/', include('vacancies.urls')),
-    path('ad/', include('ads.urls.ad')),
-    path('cat/', include('ads.urls.cat')),
-    path('user/', include('users.urls')),
-    path('', ads.views.home),
     path('company/', include('companies.urls')),
+    path('like/', vacancies.views.VacancyLikeView.as_view()),
+    path('user/', include('authentication.urls')),
 ]
+
+urlpatterns += router.urls
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
