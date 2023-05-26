@@ -1,19 +1,13 @@
-import json
-
-from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, F
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from Home_Work_27 import settings
+from authentication.models import User
 from vacancies.models import Vacancy, Skill
 from vacancies.permissions import VacancyCreatePermission
 from vacancies.serializers import VacancyDetailSerializer, VacancyListSerializer, VacancyCreateSerializer, \
@@ -75,29 +69,30 @@ class VacancyDeleteView(DestroyAPIView):
     serializer_class = VacancyDestroySerializer
 
 
-class UserVacancyDetailView(View):
-    def get(self, request):
-        user_qs = User.objects.annotate(vacancies=Count('vacancy'))
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def user_vacancies(request):
+    user_qs = User.objects.annotate(vacancies=Count('vacancy'))
 
-        paginator = Paginator(user_qs, settings.TOTAL_ON_PAGE)
-        page_number = request.GET.get("page")
-        page_object = paginator.get_page(page_number)
+    paginator = Paginator(user_qs, settings.TOTAL_ON_PAGE)
+    page_number = request.GET.get("page")
+    page_object = paginator.get_page(page_number)
 
-        users = []
-        for user in page_object:
-            users.append({
-                "id": user.id,
-                "name": user.username,
-                "vacancies": user.vacancies
-            })
+    users = []
+    for user in page_object:
+        users.append({
+            "id": user.id,
+            "name": user.username,
+            "vacancies": user.vacancies
+        })
 
-        response = {
-            "items": users,
-            "num_pages": paginator.num_pages,
-            "total": paginator.count
-        }
+    response = {
+        "items": users,
+        "num_pages": paginator.num_pages,
+        "total": paginator.count
+    }
 
-        return JsonResponse(response)
+    return JsonResponse(response)
 
 
 class VacancyLikeView(UpdateAPIView):
